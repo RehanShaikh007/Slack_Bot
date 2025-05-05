@@ -1,5 +1,6 @@
 const mongoose = require ('mongoose');
 
+// schema for approval request
 const approvalSchema = new mongoose.Schema({
     requesterId: String,
     approverId: String,

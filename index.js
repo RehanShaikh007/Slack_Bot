@@ -2,7 +2,7 @@ const dotenv = require("dotenv");
 const { App } = require("@slack/bolt");
 const express = require("express");
 const mongoose = require("mongoose");
-const Approval = require('./schema/approvalSchema');
+const Approval = require("./schema/approvalSchema");
 
 dotenv.config();
 
@@ -37,7 +37,7 @@ app.command("/approval-test", async ({ command, ack, client }) => {
       trigger_id: command.trigger_id,
       view: {
         type: "modal",
-        callback_id: "approval_modal", // Fixed to match handler
+        callback_id: "approval_modal",
         title: {
           type: "plain_text",
           text: "Approval Test",
@@ -49,7 +49,7 @@ app.command("/approval-test", async ({ command, ack, client }) => {
         blocks: [
           {
             type: "input",
-            block_id: "approver_select", // Fixed typo
+            block_id: "approver_select",
             element: {
               type: "users_select",
               placeholder: {
@@ -80,89 +80,99 @@ app.command("/approval-test", async ({ command, ack, client }) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Command error:", error);
   }
 });
 
 // Handle modal submission
-app.view('approval_modal', async ({ ack, body, view, client }) => {
+app.view("approval_modal", async ({ ack, body, view, client }) => {
   try {
     await ack();
-    
+
     const approverId = view.state.values.approver_select.approver.selected_user;
-    const text = view.state.values.approval_text.text.value;
+    const requestText = view.state.values.approval_text.text.value;
     const requesterId = body.user.id;
 
-    // Save approval request to database
-    const approval = new Approval({
-      requesterId,
-      approverId,
-      text,
-      status: 'pending'
-    });
-    await approval.save();
-
-    // Send message to approver
     await client.chat.postMessage({
       channel: approverId,
-      text: `New approval request from <@${requesterId}>`,
+      text: `New approval request from ${requesterId}: ${requestText}`,
       blocks: [
         {
-          type: 'section',
+          type: "section",
           text: {
-            type: 'mrkdwn',
-            text: `*New Approval Request*\n\nFrom: <@${requesterId}>\n\n${text}`
-          }
+            type: "mrkdwn",
+            text: `*New Approval Request from <@${requesterId}>*\n\n${requestText}`,
+          },
         },
         {
-          type: 'actions',
+          type: "actions",
           elements: [
             {
-              type: 'button',
-              text: {
-                type: 'plain_text',
-                text: 'Approve',
-                emoji: true
-              },
-              style: 'primary',
-              action_id: 'approve',
-              value: approval._id.toString()
+              type: "button",
+              text: { type: "plain_text", text: "✅ Approve" },
+              style: "primary",
+              action_id: "approve_action",
+              value: requesterId,
             },
             {
-              type: 'button',
-              text: {
-                type: 'plain_text',
-                text: 'Reject',
-                emoji: true
-              },
-              style: 'danger',
-              action_id: 'reject',
-              value: approval._id.toString()
-            }
-          ]
-        }
-      ]
+              type: "button",
+              text: { type: "plain_text", text: "❌ Reject" },
+              style: "danger",
+              action_id: "reject_action",
+              value: requesterId,
+            },
+          ],
+        },
+      ],
     });
   } catch (error) {
-    console.error(error);
+    console.error("Modal error:", error);
   }
 });
 
 // Handle approval
-app.action('approve', async ({ ack, body, client }) => {
-  await handleApprovalAction(ack, body, client, 'approved');
+app.action("approve", async ({ ack, body, client }) => {
+  await handleApprovalAction(ack, body, client, "approved");
 });
 
 // Handle rejection
-app.action('reject', async ({ ack, body, client }) => {
-  await handleApprovalAction(ack, body, client, 'rejected');
+app.action("reject", async ({ ack, body, client }) => {
+  await handleApprovalAction(ack, body, client, "rejected");
+});
+
+// Handle approve action
+app.action("approve_action", async ({ ack, body, client }) => {
+  await ack();
+  // Get approver's info
+  const approverInfo = await client.users.info({
+    user: body.user.id,
+  });
+  const approverName = approverInfo.user.real_name || approverInfo.user.name;
+  await client.chat.postMessage({
+    channel: body.actions[0].value, // requesterId
+    text: `Your request was approved by *${approverName}*!`,
+  });
+});
+
+// Handle reject action
+app.action("reject_action", async ({ ack, body, client }) => {
+  await ack();
+  // Get approver's info
+  const approverInfo = await client.users.info({
+    user: body.user.id,
+  });
+  const approverName = approverInfo.user.real_name || approverInfo.user.name;
+  await client.chat.postMessage({
+    channel: body.actions[0].value, // requesterId
+    text: `Your request was rejected by *${approverName}*!`,
+  });
 });
 
 // Shared handler for approval/rejection
 async function handleApprovalAction(ack, body, client, action) {
   try {
     await ack();
-    
+
     const approvalId = body.actions[0].value;
     const approverId = body.user.id;
 
@@ -177,13 +187,13 @@ async function handleApprovalAction(ack, body, client, action) {
       text: `Your approval request has been ${action} by <@${approverId}>`,
       blocks: [
         {
-          type: 'section',
+          type: "section",
           text: {
-            type: 'mrkdwn',
-            text: `*Approval Request Update*\n\nYour request has been *${action}* by <@${approverId}>\n\nOriginal request: ${approval.text}`
-          }
-        }
-      ]
+            type: "mrkdwn",
+            text: `*Approval Request Update*\n\nYour request has been *${action}* by <@${approverId}>\n\nOriginal request: ${approval.text}`,
+          },
+        },
+      ],
     });
 
     // Update the original message
@@ -193,13 +203,13 @@ async function handleApprovalAction(ack, body, client, action) {
       text: `Approval request ${action} by <@${approverId}>`,
       blocks: [
         {
-          type: 'section',
+          type: "section",
           text: {
-            type: 'mrkdwn',
-            text: `*Approval Request ${action}*\n\nFrom: <@${approval.requesterId}>\n\n${approval.text}\n\nStatus: ${action} by <@${approverId}>`
-          }
-        }
-      ]
+            type: "mrkdwn",
+            text: `*Approval Request ${action}*\n\nFrom: <@${approval.requesterId}>\n\n${approval.text}\n\nStatus: ${action} by <@${approverId}>`,
+          },
+        },
+      ],
     });
   } catch (error) {
     console.error(error);
