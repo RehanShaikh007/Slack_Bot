@@ -82,3 +82,6 @@ The application uses:
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
+
+## Workflow Diagram
+[Click here](https://app.eraser.io/workspace/BZPD9AZNaZuxx4t5Gins?origin=share)
