@@ -86,72 +86,68 @@ app.command("/approval-test", async ({ command, ack, client }) => {
 
 // Handle modal submission
 app.view("approval_modal", async ({ ack, body, view, client }) => {
-  try {
-    await ack();
-
-    const approverId = view.state.values.approver_select.approver.selected_user;
-    const requestText = view.state.values.approval_text.text.value;
-    const requesterId = body.user.id;
-
-    await client.chat.postMessage({
-      channel: approverId,
-      text: `New approval request from ${requesterId}: ${requestText}`,
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `*New Approval Request from <@${requesterId}>*\n\n${requestText}`,
+    try {
+      await ack();
+  
+      const approverId = view.state.values.approver_select.approver.selected_user;
+      const requestText = view.state.values.approval_text.text.value;
+      const requesterId = body.user.id;
+  
+      // Save to MongoDB
+      const approval = new Approval({
+        requesterId,
+        approverId,
+        text: requestText,
+        status: 'pending'
+      });
+      await approval.save();
+  
+      // Send message with approval ID
+      await client.chat.postMessage({
+        channel: approverId,
+        text: `New approval request from ${requesterId}: ${requestText}`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*New Approval Request from <@${requesterId}>*\n\n${requestText}`,
+            },
           },
-        },
-        {
-          type: "actions",
-          elements: [
-            {
-              type: "button",
-              text: { type: "plain_text", text: "✅ Approve" },
-              style: "primary",
-              action_id: "approve_action",
-              value: requesterId,
-            },
-            {
-              type: "button",
-              text: { type: "plain_text", text: "❌ Reject" },
-              style: "danger",
-              action_id: "reject_action",
-              value: requesterId,
-            },
-          ],
-        },
-      ],
-    });
-  } catch (error) {
-    console.error("Modal error:", error);
-  }
-});
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: { type: "plain_text", text: "✅ Approve" },
+                style: "primary",
+                action_id: "approve_action",
+                value: approval._id.toString() // Store approval ID
+              },
+              {
+                type: "button",
+                text: { type: "plain_text", text: "❌ Reject" },
+                style: "danger",
+                action_id: "reject_action",
+                value: approval._id.toString()
+              },
+            ],
+          },
+        ],
+      });
+    } catch (error) {
+      console.error("Modal error:", error);
+    }
+  });
 
 // Handle approval
-app.action("approve", async ({ ack, body, client }) => {
+app.action("approve_action", async ({ ack, body, client }) => {
   await handleApprovalAction(ack, body, client, "approved");
 });
 
 // Handle rejection
-app.action("reject", async ({ ack, body, client }) => {
+app.action("reject_action", async ({ ack, body, client }) => {
   await handleApprovalAction(ack, body, client, "rejected");
-});
-
-// Handle approve action
-app.action("approve_action", async ({ ack, body, client }) => {
-  await ack();
-  // Get approver's info
-  const approverInfo = await client.users.info({
-    user: body.user.id,
-  });
-  const approverName = approverInfo.user.real_name || approverInfo.user.name;
-  await client.chat.postMessage({
-    channel: body.actions[0].value, // requesterId
-    text: `Your request was approved by *${approverName}*!`,
-  });
 });
 
 // Handle reject action
