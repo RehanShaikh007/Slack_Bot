@@ -1,15 +1,16 @@
-import dotenv from "dotenv";
+const dotenv = require ("dotenv");
+const { App } = require ("@slack/bolt");
+const express = require ("express");
+const mongoose = require ("mongoose");
 
-import { App } from "@slack/bolt";
-
-import express from "express";
-
-import mongoose from "mongoose";
+dotenv.config();
 
 // Initialize Slack app
 const app = new App({
-  token: process.env.SIGNING_SECRET_KEY,
+  token: process.env.BOT_TOKEN_KEY,
+  signingSecret: process.env.SIGNING_SECRET_KEY,
   socketMode: true,
+  appToken: process.env.APP_TOKEN_KEY,
 });
 
 // Initialize Express app
@@ -81,3 +82,10 @@ app.command("/approval-test", async ({ command, ack, say }) => {
     console.error(error);
   }
 });
+
+
+// / Start the app
+(async () => {
+  await app.start(process.env.PORT || 3000);
+  console.log('⚡️ Bolt app is running!');
+})();
