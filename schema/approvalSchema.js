@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require ('mongoose');
 
 const approvalSchema = new mongoose.Schema({
     requesterId: String,
@@ -15,6 +15,5 @@ const approvalSchema = new mongoose.Schema({
     }
 });
 
-const Approval = mongoose.model('Approval', approvalSchema);
+module.exports= mongoose.model('Approval', approvalSchema);
 
-export default Approval;
