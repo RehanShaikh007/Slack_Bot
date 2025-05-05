@@ -85,3 +85,6 @@ The application uses:
 
 ## Workflow Diagram
 [Click here](https://app.eraser.io/workspace/BZPD9AZNaZuxx4t5Gins?origin=share)
+
+## Video Preview
+[View here](https://www.loom.com/share/937e54aecb4743659349fb3091bb531f?sid=b63e52a6-4240-4000-8d7b-db6dde2d1f53)
