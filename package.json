@@ -2,19 +2,23 @@
   "name": "slack_bot",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "A Slack bot for handling approval workflows",
   "dependencies": {
     "@slack/bolt": "^4.2.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "mongoose": "^8.14.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
